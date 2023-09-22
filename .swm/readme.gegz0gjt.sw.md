@@ -1,6 +1,6 @@
 ---
 id: gegz0gjt
-title: project-Symfony REST API
+title: README
 file_version: 1.1.3
 app_version: 1.17.0
 ---
@@ -459,7 +459,7 @@ This command creates an entity and a repository, the repository being a sort of 
 
 ```mermaid
 graph LR
-Repository --> Entity
+Repository \-\-\> Entity
 ```
 
 <!--MCONTENT {content: "graph LR<br/>\nRepository \\-\\-\\> Entity<br/>"} --->
