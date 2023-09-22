@@ -459,7 +459,7 @@ This command creates an entity and a repository, the repository being a sort of 
 
 ```mermaid
 graph LR
-Repository \-\-\> Entity
+Repository --> Entity
 ```
 
 <!--MCONTENT {content: "graph LR<br/>\nRepository \\-\\-\\> Entity<br/>"} --->
