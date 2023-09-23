@@ -486,17 +486,9 @@ This is why it is good practice to use the `.env` file like a template:
 
 Copy `.env` into `.env.local` and declare the database's path and name:
 
-<br/>
-
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-
-### 📄 .env.local
-
-```local
-27     DATABASE_URL="mysql://root:@127.0.0.1:3306/rest_api"
 ```
-
-<br/>
+DATABASE_URL="mysql://root:@127.0.0.1:3306/databaseName"
+```
 
 Now run the following command to create the database in mySQL:
 
