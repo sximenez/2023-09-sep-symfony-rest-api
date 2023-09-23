@@ -5,6 +5,32 @@ file_version: 1.1.3
 app_version: 1.17.4
 ---
 
+- [Objective](#objective)
+- [REST API Architecture](#rest-api-architecture)
+  - [HTTP](#http)
+  - [HTTP request](#http-request)
+  - [HTTP methods](#http-methods)
+  - [HTTP response](#http-response)
+  - [Code status](#code-status)
+- [From REST to RESTful](#from-rest-to-restful)
+  - [Richardson Maturity Model (RMM)](#richardson-maturity-model-rmm)
+  - [Level 0: Swamp of POX (plain old XML):](#level-0-swamp-of-pox-plain-old-xml)
+  - [Level 1: Resources:](#level-1-resources)
+  - [Level 2: HTTP methods](#level-2-http-methods)
+  - [Level 3: Hypermedia controls](#level-3-hypermedia-controls)
+  - [REST API limitations](#rest-api-limitations)
+- [Initializing the project](#initializing-the-project)
+- [Creating entities](#creating-entities)
+- [Creating the database](#creating-the-database)
+  - [Transform entity into table](#transform-entity-into-table)
+- [Fixtures](#fixtures)
+- [Create a route](#create-a-route)
+  - [Create a findAll() route](#create-a-findall-route)
+  - [📄 src/Controller/BookController.php](#-srccontrollerbookcontrollerphp)
+  - [Create a find($id) route](#create-a-findid-route)
+  - [📄 src/Controller/BookController.php](#-srccontrollerbookcontrollerphp-1)
+  - [Faker](#faker)
+
 ## Objective
 
 Develop a complete REST API using PHP and Symfony.
@@ -125,17 +151,17 @@ There are four levels.
 
 In applications communication, there is the concept of encapsulation:
 
-- Applications within a system can integrate (share data) by calling each other directly over a network.
+*   Applications within a system can integrate (share data) by calling each other directly over a network.
 
-- Encapsulation reduces the need for duplicate data within each application.
+*   Encapsulation reduces the need for duplicate data within each application.
 
-- However, a system with many calls can become a knot and create issues.
+*   However, a system with many calls can become a knot and create issues.
 
-  - _People often design the integration the way they would design a single application, unaware that the rules change. -_ Gregor Hohpe
+    *   _People often design the integration the way they would design a single application, unaware that the rules change. -_ Gregor Hohpe
 
-- In practice, a level 0 API can usually be queried on a single point of entry for all actions.
+*   In practice, a level 0 API can usually be queried on a single point of entry for all actions.
 
-- In this example `/appointmentService`
+*   In this example `/appointmentService`
 
 ```
 
@@ -181,7 +207,7 @@ HTTP/1.1 200 OK
 
 Instead of having one point of entry, a level 1 API has many, using ids.
 
-- In this example `/doctors/mjones`, the doctor and the slots are targeted individually via the URI:
+*   In this example `/doctors/mjones`, the doctor and the slots are targeted individually via the URI:
 
 ```
 -> Request
@@ -218,9 +244,9 @@ HTTP/1.1 200 OK
 </appointment>
 ```
 
-- The main difference is we can now call a method on one particular resource by providing arguments in the URI:
+*   The main difference is we can now call a method on one particular resource by providing arguments in the URI:
 
-  - To update an appointment for example `http://hospital.com/slots/1234/update-method`
+    *   To update an appointment for example `http://hospital.com/slots/1234/update-method`
 
 ### Level 2: HTTP methods
 
@@ -259,19 +285,19 @@ Location: slots/1234/appointment
 </appointment>
 ```
 
-- By using HTTP verbs, we can omit the action in level 1 `http://hospital.com/slots/1234/update-method`
+*   By using HTTP verbs, we can omit the action in level 1 `http://hospital.com/slots/1234/update-method`
 
-  - We can now use GET to receive information, POST to change state, PUT to update information, etc. all using the same URI.
+    *   We can now use GET to receive information, POST to change state, PUT to update information, etc. all using the same URI.
 
-- By using GET (a safe method not changing state), we can leverage caching, a key concept in web.
+*   By using GET (a safe method not changing state), we can leverage caching, a key concept in web.
 
-- It's important to leverage safe (GET) vs non-safe actions, plus status codes in replies.
+*   It's important to leverage safe (GET) vs non-safe actions, plus status codes in replies.
 
-  - The clearer status codes are, the higher the quality of the API.
+    *   The clearer status codes are, the higher the quality of the API.
 
 ### Level 3: Hypermedia controls
 
-- This level introduces HATEOAS (Hypertext as the Engine of Application State):
+*   This level introduces HATEOAS (Hypertext as the Engine of Application State):
 
 ```
 -> Request
@@ -324,9 +350,9 @@ Location: http://royalhope.nhs.uk/slots/1234/appointment
 </appointment>
 ```
 
-- Here, the response provides links with URIs:
+*   Here, the response provides links with URIs:
 
-  - It tells us what can be done (rel) and how (uri).
+    *   It tells us what can be done (rel) and how (uri).
 
 Remember, REST is a model to improve interactions between HTTP services:
 
@@ -456,12 +482,10 @@ This command creates an entity and a repository, the repository being a sort of 
 <br/>
 
 <!--MERMAID {width:100}-->
-
 ```mermaid
 graph LR
 Repository --> Entity
 ```
-
 <!--MCONTENT {content: "graph LR<br/>\nRepository \\-\\-\\> Entity<br/>"} --->
 
 <br/>
@@ -474,7 +498,7 @@ Sensitive data like database logins should never be pushed to GitHub.
 
 This is why it is good practice to use the `.env` file like a template:
 
-- You can copy it to create `.env.local`, `.env.dev` and `.env.prod`, according to Symfony's environments.
+*   You can copy it to create `.env.local`, `.env.dev` and `.env.prod`, according to Symfony's environments.
 
 Copy `.env` into `.env.local` and declare the database's path and name:
 
@@ -579,19 +603,16 @@ The `JsonResponse` can now be processed using `serializer`, and given four argum
 <br/>
 
 ### Create a findAll() route
-
 <!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-
 ### 📄 src/Controller/BookController.php
-
 ```hack
 23         #[Route('api/books', name: 'book', methods: ['GET'])]
 24         public function getBookList(BookRepository $bookRepository, SerializerInterface $serializer): JsonResponse
 25         {
-26
+26     
 27             $bookList = $bookRepository->findAll();
 28             $jsonBookList = $serializer->serialize($bookList, 'json');
-29
+29     
 30             return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
 31         }
 ```
@@ -599,11 +620,8 @@ The `JsonResponse` can now be processed using `serializer`, and given four argum
 <br/>
 
 ### Create a find($id) route
-
 <!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-
 ### 📄 src/Controller/BookController.php
-
 ```hack
 33         #[Route('api/books/{id}', name: 'detailBook', methods: ['GET'])]
 34         public function getOneBook(Book $book, SerializerInterface $serializer): JsonResponse
