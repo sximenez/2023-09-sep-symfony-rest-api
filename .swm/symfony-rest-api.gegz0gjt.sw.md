@@ -5,6 +5,14 @@ file_version: 1.1.3
 app_version: 1.17.0
 ---
 
+Objective
+
+REST API Architecture
+
+HTTP
+
+HTTP requests
+
 ## Objective
 
 Develop a complete REST API using PHP and Symfony.
@@ -54,7 +62,7 @@ Content-Type: application/x-www-form-urlencoded Content-Length: 28 name=Sarah
 Khalil&job=auteur
 ```
 
-### HTTP methods:
+### HTTP methods
 
 1.  GET: retrieve information related to the URI
 
@@ -472,11 +480,165 @@ To connect Symfony to a database, we use the `.env` file.
 
 Sensitive data like database logins should never be pushed to GitHub.
 
-This is why it is good practice to use the `.env` file like a template.
+This is why it is good practice to use the `.env` file like a template:
 
-You can copy it to create `.env.local`, `.env.dev` and `.env.prod`, according to Symfony's environments.
+- You can copy it to create `.env.local`, `.env.dev` and `.env.prod`, according to Symfony's environments.
 
-Copy `.env` into `.env.local` and declare the database login.
+Copy `.env` into `.env.local` and declare the database's path and name:
+
+<br/>
+
+<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
+
+### 📄 .env.local
+
+```local
+27     DATABASE_URL="mysql://root:@127.0.0.1:3306/rest_api"
+```
+
+<br/>
+
+Now run the following command to create the database in mySQL:
+
+```
+symfony console doctrine:database:create
+```
+
+To check if the connection is successful (should return 1):
+
+```
+symfony console dbal:run-sql "SELECT 1"
+```
+
+### Transform entity into table
+
+```
+symfony console doctrine:schema:update --force
+```
+
+The `--force` flag removes confirmation.
+
+However, it would be best to use `migrations`.
+
+## Fixtures
+
+Fixtures are fake or test data we can use to test our app.
+
+This feature comes as a bundle:
+
+```
+composer require orm-fixtures --dev
+```
+
+Our file size is now 30MB.
+
+Now, we need to specify how the fake data is created:
+
+```php
+for ($i = 0; $i < 20; $i++) {
+            $livre = new Book;
+            $livre->setTitle('Livre ' . $i);
+            $livre->setCoverText('Quatrième de couverture numéro : ' . $i);
+            $manager->persist($livre);
+        }
+        $manager->flush();
+```
+
+We then have to run the command to persist the data to the DB:
+
+```
+symfony console doctrine:fixtures:load
+```
+
+## Create a route
+
+A route is specified within a controller:
+
+```
+symfony console make:controller ControllerName
+```
+
+This command creates a controller skeleton out of the box.
+
+The following changes have been made to the skeleton:
+
+1.  Add `/api` prefix: not mandatory but useful.
+
+2.  Change `book` to `books`: also a common practice.
+
+3.  Replace `Response` with `JsonResponse`: more precise.
+
+4.  Replace `return $this->json`with `return new JsonResponse`: more precise.
+
+5.  Add `methods: ['GET']`: specify that only GET requests can be processed.
+
+PHP is an object-oriented language, so it can output data in JSON format.
+
+However, complex data can be challenging to turn into JSON.
+
+This process called serialization can be automated using a Symfony component `serializer`:
+
+```
+composer require symfony/serializer-pack
+```
+
+The `JsonResponse` can now be processed using `serializer`, and given four arguments:
+
+1.  The serialized data
+
+2.  The code status of the reply
+
+3.  The headers
+
+4.  If the data has been serialized, `true`
+
+<br/>
+
+### Create a findAll() route
+
+<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
+
+### 📄 src/Controller/BookController.php
+
+```hack
+23         #[Route('api/books', name: 'book', methods: ['GET'])]
+24         public function getBookList(BookRepository $bookRepository, SerializerInterface $serializer): JsonResponse
+25         {
+26
+27             $bookList = $bookRepository->findAll();
+28             $jsonBookList = $serializer->serialize($bookList, 'json');
+29
+30             return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
+31         }
+```
+
+<br/>
+
+### Create a find($id) route
+
+<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
+
+### 📄 src/Controller/BookController.php
+
+```hack
+33         #[Route('api/books/{id}', name: 'detailBook', methods: ['GET'])]
+34         public function getOneBook(Book $book, SerializerInterface $serializer): JsonResponse
+35         {
+36             $jsonBook = $serializer->serialize($book, 'json');
+37             return new JsonResponse($jsonBook, Response::HTTP_OK, ['accept' => 'json'], true);
+38         }
+```
+
+<br/>
+
+Now create a new entity `Author`with a `OneToMany` relation to `Book` and migrate it using Symfony's migrations:
+
+```
+symfony console make:migration
+symfony console doctine:migrations:migrate
+```
+
+You can add new fixtures for testing:
 
 <br/>
 
