@@ -10,11 +10,14 @@
 
 <div class="example-wrapper">
     <h1>Hello {{ controller_name }}! ✅</h1>
-
-    This friendly message is coming from:
+    <p>{{ dump(book_list) }}</p>
+    {% for book in book_list %}
+        <p>{{ book }}</p>
+    {% endfor %}
+    {# This friendly message is coming from:
     <ul>
         <li>Your controller at <code><a href="{{ 'C:/Users/steve/Documents/WEB_DEVELOPMENT/repositories/local/Books/src/Controller/BookController.php'|file_link(0) }}">src/Controller/BookController.php</a></code></li>
         <li>Your template at <code><a href="{{ 'C:/Users/steve/Documents/WEB_DEVELOPMENT/repositories/local/Books/templates/book/index.html.twig'|file_link(0) }}">templates/book/index.html.twig</a></code></li>
-    </ul>
+    </ul> #}
 </div>
 {% endblock %}
