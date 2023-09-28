@@ -26,6 +26,8 @@ class AuthorController extends AbstractController
     //     ]);
     // }
 
+    // --------------- ROUTE -------------------
+
     #[Route('/authors', name: 'author', methods: ['GET'])]
     public function getAuthorList(AuthorRepository $authorRepository, SerializerInterface $serializer): JsonResponse
     {
@@ -36,12 +38,16 @@ class AuthorController extends AbstractController
         return new JsonResponse($jsonAuthorList, Response::HTTP_OK, [], true);
     }
 
+    // --------------- ROUTE -------------------
+
     #[Route('/authors/{id}', name: 'detailAuthor', methods: ['GET'])]
     public function getOneAuthor(Author $author, SerializerInterface $serializer): JsonResponse
     {
         $jsonAuthor = $serializer->serialize($author, 'json', ['groups' => 'getAuthors']);
         return new JsonResponse($jsonAuthor, Response::HTTP_OK, [], true);
     }
+
+    // --------------- ROUTE -------------------
 
     #[Route('/authors', name: 'createAuthor', methods: ['POST'])]
     public function createAuthor(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, BookRepository $bookRepository): JsonResponse
@@ -73,6 +79,8 @@ class AuthorController extends AbstractController
         return new JsonResponse($jsonAuthor, Response::HTTP_CREATED, ["location" => $location], true);
     }
 
+    // --------------- ROUTE -------------------
+
     #[Route('/authors/{id}', name: 'updateAuthor', methods: ['PUT'])]
     public function updateAuthor(BookRepository $bookRepository, Author $currentAuthor, Request $request, SerializerInterface $serializer, EntityManagerInterface $em, AuthorRepository $authorRepository): JsonResponse
     {
@@ -99,6 +107,8 @@ class AuthorController extends AbstractController
         $jsonUpdatedAuthor = $serializer->serialize($updatedAuthor, 'json', ['groups' => 'getAuthors']);
         return new JsonResponse($jsonUpdatedAuthor, Response::HTTP_OK, [], true);
     }
+
+    // --------------- ROUTE -------------------
 
     #[Route('/authors/{id}', name: 'deleteAuthor', methods: ['DELETE'])]
     public function deleteAuthor(Author $author, EntityManagerInterface $em): JsonResponse

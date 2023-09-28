@@ -43,39 +43,39 @@ class BookController extends AbstractController
     }
 
     #[Route('/books', name: 'book', methods: ['GET'])]
-    public function getAll(): JsonResponse
-    {
-        $jsonData = $this->crudService->getAll($this->bookRepository, $this->serializer, ['getBooks']);
-        return new JsonResponse($jsonData, Response::HTTP_OK, [], true);
-    }
-
-    // public function getBookList(BookRepository $bookRepository, SerializerInterface $serializer): JsonResponse
+    // public function getAll(): JsonResponse
     // {
-
-    //     $bookList = $bookRepository->findAll();
-    //     $jsonBookList = $serializer->serialize($bookList, 'json', ['groups' => 'getBooks']);
-
-    //     return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
+    //     $jsonData = $this->crudService->getAll($this->bookRepository, $this->serializer, ['getBooks']);
+    //     return new JsonResponse($jsonData, Response::HTTP_OK, [], true);
     // }
+
+    public function getBookList(): JsonResponse
+    {
+
+        $bookList = $this->bookRepository->findAll();
+        $jsonBookList = $this->serializer->serialize($bookList, 'json', ['groups' => 'getBooks']);
+
+        return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
+    }
 
     #[Route('/books/{id}', name: 'detailBook', methods: ['GET'])]
-    public function getOne(Book $book): JsonResponse
-    {
-        $jsonData = $this->crudService->getOne($book, $this->serializer, ['getBooks']);
-        return new JsonResponse($jsonData, Response::HTTP_OK, [], true);
-    }
-
-    // public function getBook(Book $book, SerializerInterface $serializer): JsonResponse
+    // public function getOne(Book $book): JsonResponse
     // {
-    //     $jsonBook = $serializer->serialize($book, 'json', ['groups' => 'getBooks']);
-    //     return new JsonResponse($jsonBook, Response::HTTP_OK, [], true);
+    //     $jsonData = $this->crudService->getOne($book, $this->serializer, ['getBooks']);
+    //     return new JsonResponse($jsonData, Response::HTTP_OK, [], true);
     // }
 
-    #[Route('/books/{id}', name: 'deleteBook', methods: ['DELETE'])]
-    public function deleteBook(Book $book, EntityManagerInterface $em): JsonResponse
+    public function getBook(Book $book): JsonResponse
     {
-        $em->remove($book);
-        $em->flush();
+        $jsonBook = $this->serializer->serialize($book, 'json', ['groups' => 'getBooks']);
+        return new JsonResponse($jsonBook, Response::HTTP_OK, [], true);
+    }
+
+    #[Route('/books/{id}', name: 'deleteBook', methods: ['DELETE'])]
+    public function deleteBook(Book $book): JsonResponse
+    {
+        $this->em->remove($book);
+        $this->em->flush();
 
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
