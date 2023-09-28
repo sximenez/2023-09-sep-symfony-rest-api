@@ -22,7 +22,7 @@ This document is based on the OpenClassrooms [REST API course](https://openclass
 
 ## Initialize the project
 
-```Terminal
+```terminal
 symfony new projectName --webapp --docker --cloud
 ```
 
@@ -42,7 +42,7 @@ While installing bundles individually can save space, it's more efficient to use
 
 ## File structure
 
-```Mermaid
+```mermaid
 graph TD;
 API --> config;
 API --> migrations;
@@ -59,11 +59,11 @@ src --> EventSubscriber;
 
 ## Start/stop the server
 
-```Terminal
+```terminal
 symfony server:start -d
 ```
 
-```Terminal
+```terminal
 symfony server:stop
 ```
 
@@ -75,25 +75,25 @@ Use the `.env` file as a template (do not write sensible data on it as it will b
 
 2. Declare the path and name of the database:
 
-```Terminal
+```terminal
 DATABASE_URL="mysql://root:@127.0.0.1:3306/databaseName"
 ```
 
 3. Create the database in mySQL:
 
-```Terminal
+```terminal
 symfony console doctrine:database:create
 ```
 
 4. Check if the connection is successful (should return 1):
 
-```Terminal
+```terminal
 symfony console dbal:run-sql "SELECT 1"
 ```
 
 ## Create an entity
 
-```Terminal
+```terminal
 symfony console make:entity
 ```
 
@@ -111,7 +111,7 @@ And a file in the `Repository` dir with the database querying code.
 
 ## Migrate an entity to the database
 
-```Terminal
+```terminal
 symfony console make:migration
 ```
 
@@ -119,7 +119,7 @@ This creates a file in the `migrations` dir with the SQL code to alter the datab
 
 It's good practice to read and verify it.
 
-```Terminal
+```terminal
 symfony console doctrine:migrations:migrate
 ```
 
@@ -129,13 +129,13 @@ If successful, check the database for confirmation (e.g. phpmyadmin).
 
 Install Faker PHP for more realistic test data:
 
-```Terminal
+```terminal
 composer require fakerphp/faker
 ```
 
 If no `DataFixtures` dir exists on `src`, run:
 
-```Terminal
+```terminal
 composer require orm-fixtures --dev
 ```
 
@@ -198,7 +198,7 @@ Add custom fixtures to populate your tables (migrated entities):
 66     }
 ```
 
-```Terminal
+```terminal
 symfony console doctrine:fixtures:load
 ```
 
@@ -206,7 +206,7 @@ If successful, check the database for confirmation (e.g. phpmyadmin).
 
 ## Create a controller
 
-```Terminal
+```terminal
 symfony console make:controller ControllerName
 ```
 
