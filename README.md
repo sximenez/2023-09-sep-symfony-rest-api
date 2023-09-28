@@ -23,7 +23,7 @@ This document is based on the OpenClassrooms [REST API course](https://openclass
 ## Initialize the project
 
 ```Terminal
-symfony new projectName --webapp
+symfony new projectName --webapp --docker --cloud
 ```
 
 This presupposes that all necessary apps to run the project are already installed: 
@@ -32,27 +32,29 @@ Git, PHP, Symfony, Composer, XAMPP, Insomnia...
 
 Use the `--webapp` flag to install all useful bundles.
 
-This creates a ~100MB boilerplate.
+Use the `--docker` flag to prepate the project for containerization.
 
-While installing bundles individually can save space, it's more efficient to use the flag.
+Use the `--cloud` flag to prepare the project for deployment on platform.sh.
 
-The `--docker` flag can also be used eventually to set up a Docker environment.
+This creates a ~? boilerplate.
+
+While installing bundles individually can save space, it's more efficient to use the flags.
 
 ## File structure
 
 ```Mermaid
-graph TD
-API --> config
-API --> migrations
-API --> src
-API --> .env
-.env --> 1[[Database]]
-src --> Controller
-Controller --> Routes
-src --> DataFixtures
-src --> Entity
-Entity --> Repository
-src --> EventSubscriber
+graph TD;
+API --> config;
+API --> migrations;
+API --> src;
+API --> .env;
+.env --> 1[[Database]];
+src --> Controller;
+Controller --> Routes;
+src --> DataFixtures;
+src --> Entity;
+Entity --> Repository;
+src --> EventSubscriber;
 ```
 
 ## Start/stop the server
