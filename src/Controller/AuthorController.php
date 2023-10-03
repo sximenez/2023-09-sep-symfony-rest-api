@@ -29,10 +29,14 @@ class AuthorController extends AbstractController
     // --------------- ROUTE -------------------
 
     #[Route('/authors', name: 'author', methods: ['GET'])]
-    public function getAuthorList(AuthorRepository $authorRepository, SerializerInterface $serializer): JsonResponse
+    public function getAuthorList(AuthorRepository $authorRepository, SerializerInterface $serializer, Request $request): JsonResponse
     {
 
-        $authorList = $authorRepository->findAll();
+        $page = $request->get('page', 1);
+        $limit = $request->get('limit', 3);
+
+        // $authorList = $authorRepository->findAll();
+        $authorList = $authorRepository->findAllWithPagination($page, $limit);
         $jsonAuthorList = $serializer->serialize($authorList, 'json', ['groups' => 'getAuthors']);
 
         return new JsonResponse($jsonAuthorList, Response::HTTP_OK, [], true);

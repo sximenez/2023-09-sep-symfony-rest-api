@@ -12,12 +12,24 @@ This document is based on the OpenClassrooms [REST API course](https://openclass
   - [Create the database](#create-the-database)
   - [Create an entity](#create-an-entity)
   - [Create an entity relation](#create-an-entity-relation)
-    - [Create groups](#create-groups)
+    - [Create groups (handle circular references)](#create-groups-handle-circular-references)
   - [Migrate an entity to the database](#migrate-an-entity-to-the-database)
+    - [Revert to last migration](#revert-to-last-migration)
   - [Create fixtures](#create-fixtures)
   - [Create a controller](#create-a-controller)
     - [Create a route](#create-a-route)
     - [Routes common practices](#routes-common-practices)
+  - [CRUD](#crud)
+    - [Read all](#read-all)
+    - [Read one](#read-one)
+    - [Delete](#delete)
+    - [Create](#create)
+    - [Update](#update)
+  - [Create an error handler](#create-an-error-handler)
+  - [Authentication](#authentication)
+    - [JWT](#jwt)
+  - [Pagination](#pagination)
+  - [Cache system](#cache-system)
   - [Consider abstractions](#consider-abstractions)
 
 ## Initialize the project
@@ -36,7 +48,7 @@ Use the `--docker` flag to prepate the project for containerization.
 
 Use the `--cloud` flag to prepare the project for deployment on platform.sh.
 
-This creates a ~? boilerplate.
+This creates a ~100MB boilerplate.
 
 While installing bundles individually can save space, it's more efficient to use the flags.
 
@@ -48,7 +60,7 @@ API --> config;
 API --> migrations;
 API --> src;
 API --> .env;
-.env --> 1[[Database]];
+.env --> 1[(Database)];
 src --> Controller;
 Controller --> Routes;
 src --> DataFixtures;
@@ -103,11 +115,21 @@ And a file in the `Repository` dir with the database querying code.
 
 ## Create an entity relation
 
-### Create groups
+### Create groups (handle circular references)
 
 ```php
-
+#[ORM\Column(length: 255)]
+#[Groups(['getBooks', 'getAuthors'])]
+private ?string $firstName = null;
 ```
+
+This declares variable grouping within an entity.
+
+```php
+$jsonBook = $serializer->serialize($book, 'json', ['groups' => 'getBooks']);
+```
+
+This declares which groups to use within the controller.
 
 ## Migrate an entity to the database
 
@@ -124,6 +146,12 @@ symfony console doctrine:migrations:migrate
 ```
 
 If successful, check the database for confirmation (e.g. phpmyadmin).
+
+### Revert to last migration
+
+```terminal
+symfony console doctrine:migrations:execute DoctrineMigrations\Version20231002114820 --down
+```
 
 ## Create fixtures
 
@@ -235,6 +263,263 @@ class BookController extends AbstractController
 4. Use `return new JsonResponse()` instead of `return $this->json()`.
 
 5. Use `methods: ['GET']` to specify that only GET requests can be processed.
+
+## CRUD
+
+### Read all
+
+```php
+#[Route('/books', name: 'book', methods: ['GET'])]
+public function getAll(BookRepository $bookRepository, SerializerInterface $serializer): JsonResponse
+    {
+
+        $bookList = $bookRepository->findAll();
+        $jsonBookList = $serializer->serialize($bookList, 'json', ['groups' => 'getBooks']);
+
+        return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
+    }
+```
+
+### Read one
+
+```php
+#[Route('/books/{id}', name: 'detailBook', methods: ['GET'])]
+public function getBook(Book $book, SerializerInterface $serializer): JsonResponse
+    {
+        $jsonBook = $serializer->serialize($book, 'json', ['groups' => 'getBooks']);
+        
+        return new JsonResponse($jsonBook, Response::HTTP_OK, [], true);
+    }
+```
+
+### Delete
+
+```php
+#[Route('/books/{id}', name: 'deleteBook', methods: ['DELETE'])]
+public function deleteBook(Book $book, EntityManagerInterface $em): JsonResponse
+{
+    $em->remove($book);
+    $em->flush();
+
+    return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+}
+```
+
+### Create
+
+```php
+#[Route('/books', name: 'createBook', methods: ['POST'])]
+#[IsGranted('ROLE_ADMIN', message: 'You don\'t have access.')]
+public function createBook(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, AuthorRepository $authorRepository, ValidatorInterface $validator): JsonResponse
+{
+
+    $book = $serializer->deserialize($request->getContent(), Book::class, 'json');
+
+    // Error verification
+    $errors = $validator->validate($book);
+
+    if ($errors->count() > 0) {
+        return new JsonResponse($serializer->serialize($errors, 'json'), Response::HTTP_BAD_REQUEST, [], true);
+    }
+
+    $content = $request->toArray();
+    $idAuthor = $content['idAuthor'] ?? -1;
+
+    $book->setAuthor($authorRepository->find($idAuthor));
+
+    $em->persist($book);
+    $em->flush();
+
+    $jsonBook = $serializer->serialize($book, 'json', ['groups' => 'getBooks']);
+    $location = $urlGenerator->generate('detailBook', ['id' => $book->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
+
+    return new JsonResponse($jsonBook, Response::HTTP_CREATED, ["location" => $location], true);
+}
+```
+
+### Update
+
+```php
+#[Route('/books/{id}', name: 'updateBook', methods: ['PUT'])]
+public function updateBook(Book $currentBook, Request $request, SerializerInterface $serializer, EntityManagerInterface $em, AuthorRepository $authorRepository): JsonResponse
+{
+    $updatedBook = $serializer->deserialize($request->getContent(), Book::class, 'json', [AbstractNormalizer::OBJECT_TO_POPULATE => $currentBook]);
+
+    $content = $request->toArray();
+    $idAuthor = $content['idAuthor'] ?? -1;
+
+    $updatedBook->setAuthor($authorRepository->find($idAuthor));
+
+    $em->persist($updatedBook);
+    $em->flush();
+
+    $jsonUpdatedBook = $serializer->serialize($updatedBook, 'json', ['groups' => 'getBooks']);
+    return new JsonResponse($jsonUpdatedBook, Response::HTTP_OK, [], true);
+}
+```
+
+## Create an error handler
+
+```terminal
+symfony console make:subscriber
+```
+
+This creates a subscriber (listener) file in the `EventSubscriber` dir within ```src```, listening to all exceptions.
+
+```php
+class ExceptionSubscriber implements EventSubscriberInterface
+{
+  public function onKernelException(ExceptionEvent $event): void
+  {
+      $exception = $event->getThrowable();
+
+      if ($exception instanceof HttpException) {
+          $data = [
+              'status' => $exception->getStatusCode(),
+              'message' => $exception->getMessage()
+          ];
+
+          $event->setResponse(new JsonResponse($data));
+      } else {
+          $data = [
+              'status' => 500,
+              'message' => $exception->getMessage()
+          ];
+
+          $event->setResponse(new JsonResponse($data));
+      }
+  }
+
+  public static function getSubscribedEvents(): array
+  {
+      return [
+          KernelEvents::EXCEPTION => 'onKernelException',
+      ];
+  }
+}
+```
+
+```php
+#[Assert\NotBlank(message: 'Please enter a title.')]
+```
+
+Use annotations to show a message for example.
+
+## Authentication
+
+A user entity should have at least:
+
+```php
+#[ORM\Id]
+#[ORM\GeneratedValue]
+#[ORM\Column]
+private ?int $id = null;
+
+#[ORM\Column(length: 180, unique: true)]
+private ?string $email = null;
+
+#[ORM\Column]
+private array $roles = [];
+
+/**
+ * @var string The hashed password
+ */
+#[ORM\Column]
+private ?string $password = null;
+```
+
+### JWT
+
+## Pagination
+
+```php
+public function findAllWithPagination($page, $limit)
+{
+    $query = $this->createQueryBuilder('b')
+        ->setFirstResult(($page - 1) * $limit)
+        ->setMaxResults(($limit));
+
+    $totalBooks = count($this->findAll());
+    $totalPages = ceil($totalBooks / $limit);
+    $paginatedBooks = $query->getQuery()->getResult();
+
+    return ['currentPage' => intval($page), 'totalPages' => intval($totalPages), 'authors' => $paginatedBooks];
+}
+```
+
+This creates a custom query in the repository.
+
+```php
+#[Route('/authors', name: 'author', methods: ['GET'])]
+public function getAuthorList(AuthorRepository $authorRepository, SerializerInterface $serializer, Request $request): JsonResponse
+{
+
+    $page = $request->get('page', 1);
+    $limit = $request->get('limit', 3);
+    
+    $authorList = $authorRepository->findAllWithPagination($page, $limit);
+    $jsonAuthorList = $serializer->serialize($authorList, 'json', ['groups' => 'getAuthors']);
+
+    return new JsonResponse($jsonAuthorList, Response::HTTP_OK, [], true);
+}
+```
+
+## Cache system
+
+```php
+public function getBooks(Request $request, TagAwareCacheInterface $cache, BookRepository $bookRepository, SerializerInterface $serializer): JsonResponse
+{
+
+    $page = $request->get('page', 1);
+    $limit = $request->get('limit', 3);
+
+    $idCache = 'getBooks-' . $page . "-" . $limit;
+
+    // $bookList = $this->bookRepository->findAll();
+    // $bookList = $this->bookRepository->findAllWithPagination($page, $limit);
+
+    $jsonBookList = $cache->get($idCache, function (ItemInterface $item) use ($bookRepository, $page, $limit, $serializer) {
+        echo ('Cache has been set!');
+        $item->tag('booksCache');
+        $bookList = $bookRepository->findAllWithPagination($page, $limit);
+        return $serializer->serialize($bookList, 'json', ['groups' => 'getBooks']);
+    });
+
+    return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
+}
+```
+
+This sets a cache by storing data using an id and returning that stored data on call. 
+
+/!\ Remember, using cache means displaying stored values and not real ones.
+
+It is recommended to empty the cache on specific actions like `delete` or using time:
+
+```php
+#[Route('/books/{id}', name: 'deleteBook', methods: ['DELETE'])]
+#[IsGranted('ROLE_ADMIN', message: 'You don\'t have access.')]
+public function deleteBook(Book $book, EntityManagerInterface $em, TagAwareCacheInterface $cache): JsonResponse
+{
+    $cache->invalidateTags(['booksCache']);
+    $em->remove($book);
+    $em->flush();
+
+    return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+}
+```
+
+```php
+$jsonBookList = $cache->get($idCache, function (ItemInterface $item) use ($bookRepository, $page, $limit, $serializer) {
+  echo ('Cache has been set!');
+  $item->tag('booksCache');
+  // Expire après x temps
+  $item->expiresAfter(5);
+  $bookList = $bookRepository->findAllWithPagination($page, $limit);
+  return $serializer->serialize($bookList, 'json', ['groups' => 'getBooks']);
+});
+```
+
+
 
 ## Consider abstractions
 
