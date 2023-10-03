@@ -31,7 +31,20 @@ class BookRepository extends ServiceEntityRepository
         $totalPages = ceil($totalBooks / $limit);
         $paginatedBooks = $query->getQuery()->getResult();
 
-        return ['currentPage' => intval($page), 'totalPages' => intval($totalPages), 'books' => $paginatedBooks];
+        $discoverableBooks = [];
+
+        foreach ($paginatedBooks as $book) {
+            $bookId = $book->getId();
+            $book->addLink('post', '/books/' . $bookId);
+            $book->addLink('put', '/books/' . $bookId);
+            $book->addLink('delete', '/books/' . $bookId);
+            $discoverableBooks[] = [
+                'book' => $book,
+                'links' => $book->getLink()
+            ];
+        }
+
+        return ['currentPage' => intval($page), 'totalPages' => intval($totalPages), 'books' => $discoverableBooks];
     }
 
     //    /**

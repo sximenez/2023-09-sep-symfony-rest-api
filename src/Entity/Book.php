@@ -31,9 +31,11 @@ class Book
     #[Groups(['getBooks'])]
     private ?Author $author = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[ORM\Column(length: 10)]
     #[Groups(['getBooks'])]
-    private ?\DateTimeInterface $publicationDate = null;
+    private ?string $publicationDate = null;
+
+    private ?array $links = null;
 
     public function getId(): ?int
     {
@@ -76,14 +78,26 @@ class Book
         return $this;
     }
 
-    public function getPublicationDate(): ?\DateTimeInterface
+    public function getPublicationDate(): ?string
     {
         return $this->publicationDate;
     }
 
-    public function setPublicationDate(\DateTimeInterface $publicationDate): static
+    public function setPublicationDate(?string $publicationDate): static
     {
         $this->publicationDate = $publicationDate;
+
+        return $this;
+    }
+
+    public function getLink(): ?array
+    {
+        return $this->links;
+    }
+
+    public function addLink(?string $method, ?string $path)
+    {
+        $this->links[] = ['method' => $method, 'path' => $path];
 
         return $this;
     }

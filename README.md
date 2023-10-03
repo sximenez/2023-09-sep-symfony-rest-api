@@ -28,8 +28,15 @@ This document is based on the OpenClassrooms [REST API course](https://openclass
   - [Create an error handler](#create-an-error-handler)
   - [Authentication](#authentication)
     - [JWT](#jwt)
+  - [Call an external API](#call-an-external-api)
+    - [Read](#read)
+    - [Persist in the database](#persist-in-the-database)
   - [Pagination](#pagination)
   - [Cache system](#cache-system)
+  - [Autodiscovery](#autodiscovery)
+  - [Versioning](#versioning)
+  - [Documentation with Nelmio](#documentation-with-nelmio)
+    - [Annotations](#annotations)
   - [Consider abstractions](#consider-abstractions)
 
 ## Initialize the project
@@ -430,6 +437,34 @@ private ?string $password = null;
 
 ### JWT
 
+## Call an external API
+
+```terminal
+symfony console make:controller ExternalApiController
+```
+
+This creates a controller that can be used as an Http client.
+
+### Read
+
+```php
+#[Route('/planets', name: 'app_external_api', methods: 'GET')]
+public function getStarWarsPlanets(HttpClientInterface $client): JsonResponse
+{
+    $response = $client->request(
+        'GET',
+        'https://swapi.dev/api/planets'
+    );
+
+    return new JsonResponse($response->getContent(), $response->getStatusCode(), [], true);
+}
+```
+
+### Persist in the database
+
+```php
+```
+
 ## Pagination
 
 ```php
@@ -512,14 +547,207 @@ public function deleteBook(Book $book, EntityManagerInterface $em, TagAwareCache
 $jsonBookList = $cache->get($idCache, function (ItemInterface $item) use ($bookRepository, $page, $limit, $serializer) {
   echo ('Cache has been set!');
   $item->tag('booksCache');
-  // Expire après x temps
+  // Expires after x time
   $item->expiresAfter(5);
   $bookList = $bookRepository->findAllWithPagination($page, $limit);
   return $serializer->serialize($bookList, 'json', ['groups' => 'getBooks']);
 });
 ```
 
+## Autodiscovery
 
+```php
+private ?array $links = null;
+```
+
+```php
+public function getLink(): ?array
+{
+    return $this->links;
+}
+
+public function addLink(?string $method, ?string $path)
+{
+    $this->links[] = ['method' => $method, 'path' => $path];
+
+    return $this;
+}
+```
+
+This creates a private variable and a public setter and getter `links`.
+
+```php
+public function findAllWithPagination($page, $limit)
+{
+    $query = $this->createQueryBuilder('b')
+        ->setFirstResult(($page - 1) * $limit)
+        ->setMaxResults(($limit));
+
+    $totalBooks = count($this->findAll());
+    $totalPages = ceil($totalBooks / $limit);
+    $paginatedBooks = $query->getQuery()->getResult();
+
+    $discoverableBooks = [];
+
+    foreach ($paginatedBooks as $book) {
+        $bookId = $book->getId();
+        $book->addLink('post', '/books/' . $bookId);
+        $book->addLink('put', '/books/' . $bookId);
+        $book->addLink('delete', '/books/' . $bookId);
+        $discoverableBooks[] = [
+            'book' => $book,
+            'links' => $book->getLink()
+        ];
+    }
+
+    return ['currentPage' => intval($page), 'totalPages' => intval($totalPages), 'books' => $discoverableBooks];
+}
+```
+
+In the repository, create an empty array `$discoverableBooks`.
+
+Set a `foreach` loop over the query results, setting the desired links.
+
+Output `$discoverableBooks`.
+
+## Versioning
+
+When scaling an API, it's possible to provide a stable version, while deploying a beta version.
+
+[More info](https://openclassrooms.com/en/courses/7709361-construisez-une-api-rest-avec-symfony/7795174-versionnez-votre-api)
+
+## Documentation with Nelmio
+
+```terminal
+composer require nelmio/api-doc-bundle
+``` 
+
+If Twig asset is missing:
+
+```terminal
+composer require twig asset
+```
+
+```yaml
+# security.yaml
+
+access_control:
+# - { path: ^/admin, roles: ROLE_ADMIN }
+# - { path: ^/profile, roles: ROLE_USER }
+- { path: ^/api/login, roles: PUBLIC_ACCESS }
+- { path: ^/api/doc, roles: PUBLIC_ACCESS }
+- { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
+```
+
+```yaml
+# nelmio_api_doc.yaml
+
+nelmio_api_doc:
+documentation:
+info:
+    title: My App
+    description: This is an awesome app!
+    version: 1.0.0
+
+paths:
+    /api/login_check:
+    post:
+        tags:
+        - Token
+        operationId: postCredentialsItem
+        summary: Obtain a JWT.
+        requestBody:
+        content:
+            application/json:
+            schema:
+                $ref: "#/components/schemas/Credentials"
+        responses:
+        "200":
+            description: Obtain a token
+            content:
+            application/json:
+                schema:
+                $ref: "#/components/schemas/Token"
+
+components:
+    schemas:
+    Token:
+        type: object
+        properties:
+        token:
+            type: string
+            readOnly: true
+
+    Credentials:
+        type: object
+        properties:
+        username:
+            type: string
+            default: admin@bookapi.com
+        password:
+            type: string
+            default: password
+
+    securitySchemes:
+    bearerAuth:
+        type: apiKey
+        in: header
+        name: Authorization
+
+security:
+    - bearerAuth: []
+
+areas: # to filter documented areas
+path_patterns:
+    - ^/api(?!/doc$) # Accepts routes under /api except /api/doc
+
+```
+
+```url
+https://localhost:8000/api/doc
+```
+
+### Annotations
+
+```php
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
+use OpenApi\Annotations as OA;
+```
+
+```php
+/**
+     * Description goes here.
+     *
+     * @OA\Response(
+     *     response=200,
+     *     description="Description here",
+     *     @OA\JsonContent(
+     *        type="array",
+     *        @OA\Items(ref=@Model(type=Book::class, groups={"getBooks"}))
+     *     )
+     * )
+     * @OA\Parameter(
+     *     name="page",
+     *     in="query",
+     *     description="La page que l'on veut récupérer",
+     *     @OA\Schema(type="int")
+     * )
+     *
+     * @OA\Parameter(
+     *     name="limit",
+     *     in="query",
+     *     description="Le nombre d'éléments que l'on veut récupérer",
+     *     @OA\Schema(type="int")
+     * )
+     * @OA\Tag(name="Books")
+     *
+     * @param BookRepository $bookRepository
+     * @param SerializerInterface $serializer
+     * @param Request $request
+     * @return JsonResponse
+     */
+```
 
 ## Consider abstractions
 

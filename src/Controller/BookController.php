@@ -19,6 +19,9 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
+use OpenApi\Annotations as OA;
 
 #[Route('/api')]
 class BookController extends AbstractController
@@ -44,6 +47,34 @@ class BookController extends AbstractController
         // $this->crudService = $crudService;
     }
 
+    /**
+     * This is a test.
+     *
+     * @OA\Response(
+     *     response=200,
+     *     description="Recover the list of books.",
+     *     @OA\JsonContent(
+     *        type="array",
+     *        @OA\Items(ref=@Model(type=Book::class, groups={"getBooks"}))
+     *     )
+     * )
+     * 
+     * @OA\Parameter(
+     *     name="page",
+     *     in="query",
+     *     description="Page number",
+     *     @OA\Schema(type="int")
+     * )
+     *
+     * @OA\Parameter(
+     *     name="limit",
+     *     in="query",
+     *     description="Number of results",
+     *     @OA\Schema(type="int")
+     * )
+     * @OA\Tag(name="Books")
+     * 
+     */
     #[Route('/books', name: 'book', methods: ['GET'])]
     // public function getAll(): JsonResponse
     // {
@@ -63,7 +94,7 @@ class BookController extends AbstractController
         // $bookList = $this->bookRepository->findAllWithPagination($page, $limit);
 
         $jsonBookList = $cache->get($idCache, function (ItemInterface $item) use ($bookRepository, $page, $limit, $serializer) {
-            echo ('Cache has been set!');
+            // echo ('Cache has been set!');
             $item->tag('booksCache');
             $item->expiresAfter(60);
             $bookList = $bookRepository->findAllWithPagination($page, $limit);
