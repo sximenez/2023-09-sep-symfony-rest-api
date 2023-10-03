@@ -414,6 +414,10 @@ Use annotations to show a message for example.
 
 ## Authentication
 
+```terminal
+symfony console make:user
+```
+
 A user entity should have at least:
 
 ```php
@@ -435,7 +439,119 @@ private array $roles = [];
 private ?string $password = null;
 ```
 
+```php
+private $userPasswordHasher;
+
+public function __construct(UserPasswordHasherInterface $userPasswordHasher)
+{
+    $this->userPasswordHasher = $userPasswordHasher;
+}
+
+public function load(ObjectManager $manager): void
+{
+
+    $faker = Factory::create();
+
+    // User
+    $user = new User();
+    $user->setEmail('user@bookapi.com');
+    $user->setRoles(['ROLE_USER']);
+    $user->setPassword($this->userPasswordHasher->hashPassword($user, "password"));
+    $manager->persist($user);
+
+    // Admin
+    $admin = new User();
+    $admin->setEmail('admin@bookapi.com');
+    $admin->setRoles(['ROLE_ADMIN']);
+    $admin->setPassword($this->userPasswordHasher->hashPassword($admin, "password"));
+    $manager->persist($admin);
+```
+
+`UserPasswordHasherInterface` is a Symfony class to hash password effectively.
+
+Setting roles like `['ROLE_USER']` and `['ROLE_ADMIN']` allows to block routes.
+
 ### JWT
+
+```terminal
+composer require lexik/jwt-authentication-bundle
+```
+
+JWT work with a public key (encoding) and a private key (decoding).
+
+Create a `jwt` dir in the config dir.
+
+Using Git Bash,
+```terminal
+openssl genpkey -out config/jwt/private.pem -aes256 -algorithm rsa -pkeyopt rsa_keygen_bits:4096
+```
+
+This creates the private key.
+
+```terminal
+openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout
+```
+
+This creates the public key.
+
+Key generation asks for a `passphrase`.
+
+```yaml
+// env.local
+
+###> lexik/jwt-authentication-bundle ###
+JWT_SECRET_KEY=%kernel.project_dir%/config/jwt/private.pem
+JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem
+JWT_PASSPHRASE=your_passphrase
+###< lexik/jwt-authentication-bundle ###
+```
+
+```yaml
+#  security.yaml
+
+# main:
+#     lazy: true
+#     provider: app_user_provider
+
+login:
+    pattern: ^/api/login
+    stateless: true
+    json_login:
+    check_path: /api/login_check
+    success_handler: lexik_jwt_authentication.handler.authentication_success
+    failure_handler: lexik_jwt_authentication.handler.authentication_failure
+api:
+    pattern: ^/api
+    stateless: true
+    jwt: ~
+
+```
+
+```yaml
+access_control:
+# - { path: ^/admin, roles: ROLE_ADMIN }
+# - { path: ^/profile, roles: ROLE_USER }
+- { path: ^/api/login, roles: PUBLIC_ACCESS }
+- { path: ^/api/doc, roles: PUBLIC_ACCESS }
+- { path: ^/api/external, roles: PUBLIC_ACCESS }
+- { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
+```
+
+```yaml
+# config/routes.yaml
+api_login_check:
+  path: /api/login_check
+
+```
+
+```php
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+
+#[Route('/books', name: 'createBook', methods: ['POST'])]
+#[IsGranted('ROLE_ADMIN', message: 'You don\'t have access.')]
+```
+
+This blocks a route depending on user role.
 
 ## Call an external API
 
@@ -463,6 +579,39 @@ public function getStarWarsPlanets(HttpClientInterface $client): JsonResponse
 ### Persist in the database
 
 ```php
+#[Route('/planets', name: 'app_external_api', methods: 'POST')]
+public function persistStarWarsPlanets(HttpClientInterface $client, EntityManagerInterface $em): JsonResponse
+{
+    $faker = Factory::create();
+
+    $response = $client->request(
+        'GET',
+        'https://swapi.dev/api/planets'
+    );
+
+    $content = json_decode($response->getContent(), true);
+    $limited_content = array_slice($content['results'], 0, 10);
+
+    foreach ($limited_content as $e) {
+
+        $book = new Book;
+        $name = $e['name'];
+        $summary = $e['climate'];
+
+        // dump($name);
+
+        $book->setTitle($name);
+        $book->setCoverText($summary);
+        $publicationDate = new \DateTime($faker->date());
+        $book->setPublicationDate($publicationDate);
+
+        $em->persist($book);
+    }
+
+    $em->flush();
+
+    return new JsonResponse('Items created', Response::HTTP_CREATED, [], false);
+}
 ```
 
 ## Pagination

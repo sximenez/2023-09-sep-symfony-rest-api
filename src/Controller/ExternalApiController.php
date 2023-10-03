@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Faker\Factory;
 use OpenApi\Annotations as OA;
 
 #[Route('/api/external')]
@@ -40,6 +41,8 @@ class ExternalApiController extends AbstractController
     #[Route('/planets', name: 'app_external_api', methods: 'POST')]
     public function persistStarWarsPlanets(HttpClientInterface $client, EntityManagerInterface $em): JsonResponse
     {
+        $faker = Factory::create();
+
         $response = $client->request(
             'GET',
             'https://swapi.dev/api/planets'
@@ -58,7 +61,8 @@ class ExternalApiController extends AbstractController
 
             $book->setTitle($name);
             $book->setCoverText($summary);
-            $book->setPublicationDate("1997-01-05");
+            $publicationDate = new \DateTime($faker->date());
+            $book->setPublicationDate($publicationDate);
 
             $em->persist($book);
         }
