@@ -1,63 +1,59 @@
----
-id: gegz0gjt
-title: original_Symfony REST API
-file_version: 1.1.3
-app_version: 1.17.4
----
+# REST API Architecture
 
 ## TOC
 
-*   [Objective](#objective)
-
-*   [REST API Architecture](#rest-api-architecture)
-
-    *   [HTTP](#http)
-
-    *   [HTTP request](#http-request)
-
-    *   [HTTP methods](#http-methods)
-
-    *   [HTTP response](#http-response)
-
-    *   [Code status](#code-status)
-
-*   [From REST to RESTful](#from-rest-to-restful)
-
-    *   [Richardson Maturity Model (RMM)](#richardson-maturity-model-rmm)
-
-    *   [Level 0: Swamp of POX (plain old XML):](#level-0-swamp-of-pox-plain-old-xml)
-
-    *   [Level 1: Resources:](#level-1-resources)
-
-    *   [Level 2: HTTP methods](#level-2-http-methods)
-
-    *   [Level 3: Hypermedia controls](#level-3-hypermedia-controls)
-
-    *   [REST API limitations](#rest-api-limitations)
-
-*   [Initializing the project](#initializing-the-project)
-
-*   [Creating entities](#creating-entities)
-
-*   [Creating the database](#creating-the-database)
-
-    *   [Transform entity into table](#transform-entity-into-table)
-
-*   [Fixtures](#fixtures)
-
-*   [Create a route](#create-a-route)
-
-    *   [Create a findAll() route](#create-a-findall-route)
-
-    *   [Create a find($id) route](#create-a-findid-route)
-
-*   [Faker](#faker)
+<!--TOC-->
+  - [Objective](#objective)
+  - [REST API Architecture](#rest-api-architecture)
+    - [HTTP](#http)
+    - [HTTP request](#http-request)
+    - [HTTP methods](#http-methods)
+    - [HTTP response](#http-response)
+    - [Code status](#code-status)
+  - [From REST to RESTful](#from-rest-to-restful)
+    - [Richardson Maturity Model (RMM)](#richardson-maturity-model-rmm)
+    - [Level 0: Swamp of POX (plain old XML):](#level-0-swamp-of-pox-plain-old-xml)
+    - [Level 1: Resources:](#level-1-resources)
+    - [Level 2: HTTP methods](#level-2-http-methods)
+    - [Level 3: Hypermedia controls](#level-3-hypermedia-controls)
+    - [REST API limitations](#rest-api-limitations)
+  - [Initializing the project](#initializing-the-project)
+  - [Creating entities](#creating-entities)
+  - [Creating the database](#creating-the-database)
+    - [Transform entity into table](#transform-entity-into-table)
+  - [Fixtures](#fixtures)
+  - [Create a route](#create-a-route)
+    - [src/Controller/BookController.php](#-srccontrollerbookcontroller.php)
+    - [src/Controller/BookController.php](#-srccontrollerbookcontroller.php)
+    - [Faker](#faker)
+    - [src/DataFixtures/AppFixtures.php](#-srcdatafixturesappfixtures.php)
+  - [Handling circular references](#handling-circular-references)
+    - [src/Entity/Book.php](#-srcentitybook.php)
+    - [src/Entity/Author.php](#-srcentityauthor.php)
+    - [src/Controller/BookController.php](#-srccontrollerbookcontroller.php)
+  - [CRUD](#crud)
+    - [src/Controller/BookController.php](#-srccontrollerbookcontroller.php)
+    - [src/Controller/BookController.php](#-srccontrollerbookcontroller.php)
+    - [src/Controller/BookController.php](#-srccontrollerbookcontroller.php)
+  - [Error handling](#error-handling)
+    - [Exception subscriber](#exception-subscriber)
+    - [src/EventSubscriber/ExceptionSubscriber.php](#-srceventsubscriberexceptionsubscriber.php)
+  - [Authentification](#authentification)
+    - [src/DataFixtures/AppFixtures.php](#-srcdatafixturesappfixtures.php)
+    - [JWT](#jwt)
+    - [JWT config](#jwt-config)
+    - [config/packages/security.yaml](#-configpackagessecurity.yaml)
+    - [config/packages/security.yaml](#-configpackagessecurity.yaml)
+    - [config/routes.yaml](#-configroutes.yaml)
+    - [Login check](#login-check)
+    - [src/Controller/BookController.php](#-srccontrollerbookcontroller.php)
+<!--/TOC-->
 
 ## Objective
 
 Develop a complete REST API using PHP and Symfony.
 
-## REST API Architecture
+## Introduction
 
 An API is an application: Application Programming Interface.
 
@@ -501,16 +497,12 @@ symfony console make:entity
 
 This command creates an entity and a repository, the repository being a sort of manager of the entity:
 
-<br/>
-
 <!--MERMAID {width:100}-->
 ```mermaid
 graph LR
 Repository --> Entity
 ```
-<!--MCONTENT {content: "graph LR<br/>\nRepository \\-\\-\\> Entity<br/>"} --->
-
-<br/>
+<!--MCONTENT {content: "graph \nRepository \\-\\-\\> Enti"} --->
 
 ## Creating the database
 
@@ -568,7 +560,7 @@ Now, we need to specify how the fake data is created:
 for ($i = 0; $i < 20; $i++) {
             $livre = new Book;
             $livre->setTitle('Livre ' . $i);
-            $livre->setCoverText('Quatrième de couverture numéro : ' . $i);
+            $livre->setCoverText('Quatri�me de couverture num�ro : ' . $i);
             $manager->persist($livre);
         }
         $manager->flush();
@@ -622,11 +614,7 @@ The `JsonResponse` can now be processed using `serializer`, and given four argum
 
 4.  If the data has been serialized, `true`
 
-<br/>
-
-Create a findAll() route
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 src/Controller/BookController.php
+Create a findAll() route### src/Controller/BookController.php
 ```hack
 44         #[Route('/books', name: 'book', methods: ['GET'])]
 45         public function getAll(): JsonResponse
@@ -645,11 +633,7 @@ Create a findAll() route
 58         // }
 ```
 
-<br/>
-
-Create a find($id) route
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 src/Controller/BookController.php
+Create a find($id) route### src/Controller/BookController.php
 ```hack
 60         #[Route('/books/{id}', name: 'detailBook', methods: ['GET'])]
 61         public function getOne(Book $book): JsonResponse
@@ -658,8 +642,6 @@ Create a find($id) route
 64             return new JsonResponse($jsonData, Response::HTTP_OK, [], true);
 65         }
 ```
-
-<br/>
 
 Now create a new entity `Author`with a `OneToMany` relation to `Book` and migrate it using Symfony's migrations:
 
@@ -678,11 +660,7 @@ composer require fakerphp/faker
 
 This brings the file size to 45MB.
 
-<br/>
-
-Faker fixture.
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 src/DataFixtures/AppFixtures.php
+Faker fixture.### src/DataFixtures/AppFixtures.php
 ```hack
 13     class AppFixtures extends Fixture
 14     {
@@ -715,12 +693,12 @@ Faker fixture.
 41             // Author
 42             $listAuthor = [];
 43             for ($i = 0; $i < 5; $i++) {
-44                 // Création de l'auteur lui-même.
+44                 // Cr�ation de l'auteur lui-m�me.
 45                 $author = new Author();
 46                 $author->setFirstName($faker->firstName());
 47                 $author->setLastName($faker->lastName());
 48                 $manager->persist($author);
-49                 // On sauvegarde l'auteur créé dans un tableau.
+49                 // On sauvegarde l'auteur cr�� dans un tableau.
 50                 $listAuthor[] = $author;
 51             }
 52     
@@ -740,8 +718,6 @@ Faker fixture.
 66     }
 ```
 
-<br/>
-
 ## Handling circular references
 
 When creating relationships between entities, circular references can occur.
@@ -750,11 +726,7 @@ This will log an error when the route is tested.
 
 `Groups` within Symfony allow to solve this by specifying which variables should be returned:
 
-<br/>
-
-
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 src/Entity/Book.php
+### src/Entity/Book.php
 ```hack
 11     #[ORM\Entity(repositoryClass: BookRepository::class)]
 12     class Book
@@ -780,11 +752,7 @@ This will log an error when the route is tested.
 32         private ?Author $author = null;
 ```
 
-<br/>
-
-Here, we don't want the `$books` collection to be exposed.
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 src/Entity/Author.php
+Here, we don't want the `$books` collection to be exposed.### src/Entity/Author.php
 ```hack
 11     #[ORM\Entity(repositoryClass: AuthorRepository::class)]
 12     class Author
@@ -808,15 +776,9 @@ Here, we don't want the `$books` collection to be exposed.
 30         private Collection $books;
 ```
 
-<br/>
-
 Then, within the controller, the group needs to be stated:
 
-<br/>
-
-
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 src/Controller/BookController.php
+### src/Controller/BookController.php
 ```hack
 60         #[Route('/books/{id}', name: 'detailBook', methods: ['GET'])]
 61         public function getOne(Book $book): JsonResponse
@@ -832,15 +794,9 @@ Then, within the controller, the group needs to be stated:
 71         // }
 ```
 
-<br/>
-
 ## CRUD
 
-<br/>
-
-Delete
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 src/Controller/BookController.php
+Delete### src/Controller/BookController.php
 ```hack
 60         #[Route('/books/{id}', name: 'detailBook', methods: ['GET'])]
 61         public function getOne(Book $book): JsonResponse
@@ -865,11 +821,7 @@ Delete
 80         }
 ```
 
-<br/>
-
-Create
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 src/Controller/BookController.php
+Create### src/Controller/BookController.php
 ```hack
 83         #[Route('/books', name: 'createBook', methods: ['POST'])]
 84         #[IsGranted('ROLE_ADMIN', message: 'You don\'t have access.')]
@@ -900,11 +852,7 @@ Create
 109        }
 ```
 
-<br/>
-
-Update
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 src/Controller/BookController.php
+Update### src/Controller/BookController.php
 ```hack
 77         #[Route('/books/{id}', name: 'updateBook', methods: ['PUT'])]
 78         public function updateBook(Book $currentBook, Request $request, SerializerInterface $serializer, EntityManagerInterface $em, AuthorRepository $authorRepository): JsonResponse
@@ -924,8 +872,6 @@ Update
 92         }
 ```
 
-<br/>
-
 ## Error handling
 
 Symfony translates errors into HTML for debugging, which is very useful.
@@ -942,11 +888,7 @@ symfony console make:subscriber
 
 We will be listening to `kernel.exception`which is an entry point for all exceptions.
 
-<br/>
-
-
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 src/EventSubscriber/ExceptionSubscriber.php
+### src/EventSubscriber/ExceptionSubscriber.php
 ```hack
 11     class ExceptionSubscriber implements EventSubscriberInterface
 12     {
@@ -972,8 +914,6 @@ We will be listening to `kernel.exception`which is an entry point for all except
 32         }
 ```
 
-<br/>
-
 To be more precise, we can use `annotations`.
 
 ## Authentification
@@ -985,11 +925,7 @@ composer require security
 symfony console make:user
 ```
 
-<br/>
-
-User and admin creation
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 src/DataFixtures/AppFixtures.php
+User and admin creation### src/DataFixtures/AppFixtures.php
 ```hack
 22         public function load(ObjectManager $manager): void
 23         {
@@ -1010,8 +946,6 @@ User and admin creation
 38             $admin->setPassword($this->userPasswordHasher->hashPassword($admin, "password"));
 39             $manager->persist($admin);
 ```
-
-<br/>
 
 ### JWT
 
@@ -1067,11 +1001,7 @@ JWT_PASSPHRASE=change_here
 
 In `security.yaml` (config file between Symfony and JWT):
 
-<br/>
-
-
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 config/packages/security.yaml
+### config/packages/security.yaml
 ```yaml
 16         # main:
 17         #     lazy: true
@@ -1090,11 +1020,7 @@ In `security.yaml` (config file between Symfony and JWT):
 30           jwt: ~
 ```
 
-<br/>
-
-
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 config/packages/security.yaml
+### config/packages/security.yaml
 ```yaml
 40       access_control:
 41         # - { path: ^/admin, roles: ROLE_ADMIN }
@@ -1103,21 +1029,13 @@ In `security.yaml` (config file between Symfony and JWT):
 44         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 ```
 
-<br/>
-
 In `route.yaml`, we specify the route to obtain the token:
 
-<br/>
-
-
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 config/routes.yaml
+### config/routes.yaml
 ```yaml
 7      api_login_check:
 8        path: /api/login_check
 ```
-
-<br/>
 
 ### Login check
 
@@ -1136,15 +1054,7 @@ This token can then be used in the `bearer` field in the header of every other c
 
 To restrict access, you can use the `IsGranted` syntax on a route:
 
-<br/>
-
-
-<!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
-### 📄 src/Controller/BookController.php
+### src/Controller/BookController.php
 ```hack
 84         #[IsGranted('ROLE_ADMIN', message: 'You don\'t have access.')]
 ```
-
-<br/>
-
-This file was generated by Swimm. [Click here to view it in the app](https://app.swimm.io/repos/Z2l0aHViJTNBJTNBMjAyMy0wOS1zZXB0LXN5bWZvbnktcmVzdC1hcGklM0ElM0FzeGltZW5leg==/docs/gegz0gjt).
